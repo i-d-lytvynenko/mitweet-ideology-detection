@@ -1,0 +1,24 @@
+# Venv folder
+.venv
+
+# Byte-compiled / optimized / DLL files
+**/__pycache__
+*.py[cod]
+*.ipynb
+*$py.class
+
+# Hydra
+outputs/
+
+# MLflow
+mlruns/
+mlartifacts/
+mlruns.db
+**/basic_auth.db
+
+# Stubs from https://github.com/microsoft/python-type-stubs
+stubs/
+
+models/
+data/
+notes.org
