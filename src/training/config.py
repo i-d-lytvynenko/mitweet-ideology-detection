@@ -9,6 +9,26 @@ class RandomState:
 
 
 @dataclass
+class PreprocessingConfig(RandomState):
+    pass
+
+
+@dataclass
+class TfidfConfig(PreprocessingConfig):
+    pass
+
+
+@dataclass
+class TfidfPCAConfig(PreprocessingConfig):
+    components: int = 100
+
+
+@dataclass
+class TransformerConfig(PreprocessingConfig):
+    model_name: str = "all-mpnet-base-v2"
+
+
+@dataclass
 class BaseConfig(RandomState):
     data_path: str = "${hydra:runtime.cwd}/data/MITweet.csv"
 
@@ -22,5 +42,15 @@ class PaperComparisonConfig(BaseConfig):
     importance_coefs: tuple[float, float, float, float] = (1, 1, 1, 1)
 
 
+@dataclass
+class Config(BaseConfig):
+    preprocessing_method: PreprocessingConfig = field(default_factory=TfidfPCAConfig)
+
+
 cs = ConfigStore.instance()
 cs.store(name="paper_comparison_config", node=PaperComparisonConfig)
+
+cs.store(name="config", node=Config)
+cs.store(group="preprocessing_method", name="tfidf", node=TfidfConfig)
+cs.store(group="preprocessing_method", name="tfidf_pca", node=TfidfPCAConfig)
+cs.store(group="preprocessing_method", name="transformer", node=TransformerConfig)
