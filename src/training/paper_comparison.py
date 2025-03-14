@@ -18,34 +18,29 @@ from src.training.data.dataset_info import facets, paper_results
 def main(cfg: PaperComparisonConfig) -> None:
     df = pd.read_csv(cfg.data_path)
 
-    RANDOM_STATE = cfg.random_state
-    REMOVE_IRRELEVANT = cfg.remove_irrelevant
-    IMPORTANCE_COEFS = np.array(cfg.importance_coefs)
-    FACET_IDS_TO_SKIP = cfg.facet_ids_to_skip
-
-    undersampler = RandomUnderSampler(random_state=RANDOM_STATE)
+    undersampler = RandomUnderSampler(random_state=cfg.random_state)
     pipeline = Pipeline(
         [
             ("tfidf", TfidfVectorizer()),
-            ("logreg", LogisticRegression(random_state=RANDOM_STATE)),
+            ("logreg", LogisticRegression(random_state=cfg.random_state)),
         ]
     )
-    kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
+    kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=cfg.random_state)
 
     print(
         "Facet name".ljust(30),
-        "Support".ljust(10) if REMOVE_IRRELEVANT else "",
+        "Support".ljust(10) if cfg.remove_irrelevant else "",
         "F1".ljust(20),
-        "F1 Reference" if REMOVE_IRRELEVANT else "",
+        "F1 Reference" if cfg.remove_irrelevant else "",
         sep="",
     )
 
     for facet_id, facet_name in enumerate(facets, start=1):
-        if facet_id in FACET_IDS_TO_SKIP:
+        if facet_id in cfg.facet_ids_to_skip:
             continue
         texts = df.loc[:, "tweet"].to_numpy()
         labels = df.loc[:, f"I{facet_id}"].to_numpy()
-        if REMOVE_IRRELEVANT:
+        if cfg.remove_irrelevant:
             texts = texts[labels != -1]
             labels = labels[labels != -1]
 
@@ -62,11 +57,11 @@ def main(cfg: PaperComparisonConfig) -> None:
 
             y_pred: np.ndarray[None, np.dtype[np.float32]]
 
-            if REMOVE_IRRELEVANT:
-                y_pred = np.argmax(IMPORTANCE_COEFS[1:] * y_pred_proba, axis=1)
+            if cfg.remove_irrelevant:
+                y_pred = np.argmax(cfg.importance_coefs[1:] * y_pred_proba, axis=1)
                 scores.append(f1_score(y_test, y_pred, average="macro"))
             else:
-                y_pred = np.argmax(IMPORTANCE_COEFS * y_pred_proba, axis=1) - 1
+                y_pred = np.argmax(cfg.importance_coefs * y_pred_proba, axis=1) - 1
                 # Don't use irrelevant tweets in F1 scoring
                 scores.append(np.mean(f1_score(y_test, y_pred, average=None)[1:]))  # pyright: ignore[reportIndexIssue]
 
@@ -74,9 +69,9 @@ def main(cfg: PaperComparisonConfig) -> None:
         f1s_std = np.std(scores) * 100
         print(
             facet_name.ljust(30),
-            str(texts.size).ljust(10) if REMOVE_IRRELEVANT else "",
+            str(texts.size).ljust(10) if cfg.remove_irrelevant else "",
             f"{f1s_mean:.2f} (STD {f1s_std:.2f})".ljust(20),
-            f"{paper_results[facet_id - 1]}" if REMOVE_IRRELEVANT else "",
+            f"{paper_results[facet_id - 1]}" if cfg.remove_irrelevant else "",
             sep="",
         )
 
