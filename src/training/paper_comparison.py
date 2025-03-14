@@ -11,7 +11,7 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.pipeline import Pipeline
 
 from src.training.config import PaperComparisonConfig
-from src.training.dataset_info import facets, paper_results
+from src.training.data.dataset_info import facets, paper_results
 
 
 @hydra.main(version_base=None, config_name="paper_comparison_config")

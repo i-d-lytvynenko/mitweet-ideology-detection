@@ -20,5 +20,5 @@ mlruns.db
 stubs/
 
 models/
-data/
+/data/
 notes.org
