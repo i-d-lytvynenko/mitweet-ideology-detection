@@ -10,7 +10,6 @@ from sklearn.pipeline import Pipeline
 from src.training.config import (
     PreprocessingConfig,
     TfidfConfig,
-    TfidfPCAConfig,
     TransformerConfig,
 )
 
@@ -24,29 +23,31 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         self,
         preprocessing_config: PreprocessingConfig,
     ) -> None:
-        if isinstance(preprocessing_config, TfidfConfig):
+        self.config = preprocessing_config
+        if isinstance(self.config, TfidfConfig):
             tfidf = TfidfVectorizer()
-            self._pipeline = Pipeline([("tfidf", tfidf)])
-        elif isinstance(preprocessing_config, TfidfPCAConfig):
-            tfidf = TfidfVectorizer()
-            pca = PCA(
-                random_state=preprocessing_config.random_state,
-                n_components=preprocessing_config.components,
-            )
-            self._pipeline = Pipeline([("tfidf", tfidf), ("pca", pca)])
-        elif isinstance(preprocessing_config, TransformerConfig):
-            self._transformer = SentenceTransformer(preprocessing_config.model_name)
-        self.preprocessing_config = preprocessing_config
+            pipeline_elements: list[tuple[str, BaseEstimator]] = [("tfidf", tfidf)]
+            if self.config.use_pca:
+                pca = PCA(
+                    random_state=self.config.random_state,
+                    n_components=self.config.pca_config.n_components,
+                )
+                pipeline_elements.append(("pca", pca))
+            self._pipeline = Pipeline(pipeline_elements)
+        elif isinstance(self.config, TransformerConfig):
+            self._transformer = SentenceTransformer(self.config.model_name)
+        else:
+            raise NotImplementedError
 
     def fit(self, X: list[str], y: arr_f32 | None = None) -> "Preprocessor":  # pyright: ignore[reportUnusedParameter]
-        if isinstance(self.preprocessing_config, (TfidfConfig, TfidfPCAConfig)):
+        if isinstance(self.config, TfidfConfig):
             _ = self._pipeline.fit(X)
         return self
 
     def transform(self, X: list[str]) -> arr_f32:
-        if isinstance(self.preprocessing_config, (TfidfConfig, TfidfPCAConfig)):
+        if isinstance(self.config, TfidfConfig):
             return cast(arr_f32, self._pipeline.transform(X))
-        elif isinstance(self.preprocessing_config, TransformerConfig):
+        elif isinstance(self.config, TransformerConfig):
             return cast(arr_f32, self._transformer.encode(X, convert_to_numpy=True))
         else:
             raise NotImplementedError

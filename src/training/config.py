@@ -14,13 +14,14 @@ class PreprocessingConfig(RandomState):
 
 
 @dataclass
-class TfidfConfig(PreprocessingConfig):
-    pass
+class PCAConfig:
+    n_components: int = 100
 
 
 @dataclass
-class TfidfPCAConfig(PreprocessingConfig):
-    components: int = 100
+class TfidfConfig(PreprocessingConfig):
+    use_pca: bool = False
+    pca_config: PCAConfig = field(default_factory=PCAConfig)
 
 
 @dataclass
@@ -44,7 +45,7 @@ class PaperComparisonConfig(BaseConfig):
 
 @dataclass
 class Config(BaseConfig):
-    preprocessing_method: PreprocessingConfig = field(default_factory=TfidfPCAConfig)
+    preprocessing_config: PreprocessingConfig = field(default_factory=TfidfConfig)
 
 
 cs = ConfigStore.instance()
@@ -52,5 +53,4 @@ cs.store(name="paper_comparison_config", node=PaperComparisonConfig)
 
 cs.store(name="config", node=Config)
 cs.store(group="preprocessing_method", name="tfidf", node=TfidfConfig)
-cs.store(group="preprocessing_method", name="tfidf_pca", node=TfidfPCAConfig)
 cs.store(group="preprocessing_method", name="transformer", node=TransformerConfig)
