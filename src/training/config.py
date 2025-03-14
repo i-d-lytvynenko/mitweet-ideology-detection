@@ -26,6 +26,7 @@ class TfidfConfig(PreprocessingConfig):
 
 @dataclass
 class TransformerConfig(PreprocessingConfig):
+    cache_dir: str = "embeddings_cache"
     model_name: str = "all-mpnet-base-v2"
 
 

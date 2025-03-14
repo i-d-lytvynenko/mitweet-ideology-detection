@@ -12,6 +12,7 @@ from sklearn.pipeline import Pipeline
 
 from src.training.config import PaperComparisonConfig
 from src.training.data.dataset_info import facets, paper_results
+from src.utils.types import arr_1d_f
 
 
 @hydra.main(version_base=None, config_name="paper_comparison_config")
@@ -55,8 +56,7 @@ def main(cfg: PaperComparisonConfig) -> None:
             X_train = X_train[:, 0]
             y_pred_proba = pipeline.fit(X_train, y_train).predict_proba(X_test)
 
-            y_pred: np.ndarray[None, np.dtype[np.float32]]
-
+            y_pred: arr_1d_f
             if cfg.remove_irrelevant:
                 y_pred = np.argmax(cfg.importance_coefs[1:] * y_pred_proba, axis=1)
                 scores.append(f1_score(y_test, y_pred, average="macro"))
@@ -65,12 +65,12 @@ def main(cfg: PaperComparisonConfig) -> None:
                 # Don't use irrelevant tweets in F1 scoring
                 scores.append(np.mean(f1_score(y_test, y_pred, average=None)[1:]))  # pyright: ignore[reportIndexIssue]
 
-        f1s_mean = np.mean(scores) * 100
-        f1s_std = np.std(scores) * 100
+        f1_mean = np.mean(scores) * 100
+        f1_std = np.std(scores) * 100
         print(
             facet_name.ljust(30),
             str(texts.size).ljust(10) if cfg.remove_irrelevant else "",
-            f"{f1s_mean:.2f} (STD {f1s_std:.2f})".ljust(20),
+            f"{f1_mean:.2f} (STD {f1_std:.2f})".ljust(20),
             f"{paper_results[facet_id - 1]}" if cfg.remove_irrelevant else "",
             sep="",
         )

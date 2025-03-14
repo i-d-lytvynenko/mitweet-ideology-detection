@@ -13,6 +13,21 @@ facets = {
     "Personal Right (PeR)": ("Social Responsibility", "Individual Right"),
 }
 
+facet_abbrevs = [
+    "PoR",
+    "SS",
+    "EO",
+    "EE",
+    "EP",
+    "CSR",
+    "CV",
+    "DS",
+    "MF",
+    "SD",
+    "JO",
+    "PeR",
+]
+
 # Best F1 scores from https://aclanthology.org/2023.emnlp-main.256
 # Note: irrelevant tweets were not used
 paper_results = [

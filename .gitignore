@@ -21,4 +21,6 @@ stubs/
 
 models/
 /data/
+/transformers/
+embeddings_cache/
 notes.org
