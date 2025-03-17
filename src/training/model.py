@@ -31,7 +31,7 @@ class Classifier(BaseEstimator, ClassifierMixin):
         if isinstance(self.config, LogisticRegressionConfig):
             self.model = LogisticRegression(**model_params)
         elif isinstance(self.config, SVCConfig):
-            self.model = SVC(**model_params)
+            self.model = SVC(probability=True, **model_params)
         elif isinstance(self.config, RandomForestConfig):
             self.model = RandomForestClassifier(**model_params)
         else:
