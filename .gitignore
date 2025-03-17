@@ -9,6 +9,7 @@
 
 # Hydra
 outputs/
+multirun/
 
 # MLflow
 mlruns/
@@ -24,3 +25,4 @@ models/
 /transformers/
 embeddings_cache/
 notes.org
+/other/

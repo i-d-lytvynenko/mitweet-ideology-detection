@@ -3,16 +3,16 @@ from typing import cast, final
 
 import numpy as np
 from joblib import dump, load
-from sentence_transformers import SentenceTransformer
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.decomposition import PCA
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import Pipeline
 
 from src.training.config import (
-    PreprocessingConfig,
+    PreprocessorConfig,
     TfidfConfig,
     TransformerConfig,
+    preprocessors,
 )
 from src.utils.types import arr_1d_f, arr_2d_f
 
@@ -20,6 +20,8 @@ from src.utils.types import arr_1d_f, arr_2d_f
 @final
 class CachedTransformer:
     def __init__(self, cache_dir: str, model_name: str):
+        from sentence_transformers import SentenceTransformer
+
         self.model = SentenceTransformer(model_name)
         os.makedirs(cache_dir, exist_ok=True)
         self.cache_filename = os.path.join(cache_dir, f"{model_name}.pkl")
@@ -51,19 +53,19 @@ class CachedTransformer:
                 self.cache[sentence] = new_embeddings[embed_i]
                 sentence_dict[sentence] = new_embeddings[embed_i]
                 embed_i += 1
-            assert embed_i == len(unknown_sentences)
 
-        _ = dump(self.cache, self.cache_filename)
-        return np.array(sentence_dict.values())
+            _ = dump(self.cache, self.cache_filename)
+        return np.array(list(sentence_dict.values()))
 
 
 @final
 class Preprocessor(BaseEstimator, TransformerMixin):
     def __init__(
         self,
-        preprocessing_config: PreprocessingConfig,
+        config: PreprocessorConfig,
     ) -> None:
-        self.config = preprocessing_config
+        # Fix hydra's duck typing
+        self.config = preprocessors[config.name](**config)
         if isinstance(self.config, TfidfConfig):
             tfidf = TfidfVectorizer()
             pipeline_elements: list[tuple[str, BaseEstimator]] = [("tfidf", tfidf)]
@@ -73,9 +75,9 @@ class Preprocessor(BaseEstimator, TransformerMixin):
                     n_components=self.config.pca_config.n_components,
                 )
                 pipeline_elements.append(("pca", pca))
-            self._pipeline = Pipeline(pipeline_elements)
+            self.pipeline = Pipeline(pipeline_elements)
         elif isinstance(self.config, TransformerConfig):
-            self._transformer = CachedTransformer(
+            self.transformer = CachedTransformer(
                 cache_dir=self.config.cache_dir, model_name=self.config.model_name
             )
         else:
@@ -83,13 +85,13 @@ class Preprocessor(BaseEstimator, TransformerMixin):
 
     def fit(self, X: list[str], y: arr_1d_f | None = None) -> "Preprocessor":  # pyright: ignore[reportUnusedParameter]
         if isinstance(self.config, TfidfConfig):
-            _ = self._pipeline.fit(X)
+            self.pipeline_ = self.pipeline.fit(X)  # pyright: ignore[reportUninitializedInstanceVariable]
         return self
 
     def transform(self, X: list[str]) -> arr_2d_f:
         if isinstance(self.config, TfidfConfig):
-            return cast(arr_2d_f, self._pipeline.transform(X))
+            return cast(arr_2d_f, self.pipeline_.transform(X))
         elif isinstance(self.config, TransformerConfig):
-            return self._transformer.encode(X)
+            return self.transformer.encode(X)
         else:
             raise NotImplementedError

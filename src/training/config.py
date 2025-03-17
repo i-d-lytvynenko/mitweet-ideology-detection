@@ -1,6 +1,13 @@
+# pyright: reportAny=none, reportExplicitAny=none
+
 from dataclasses import dataclass, field
+from typing import Any
 
 from hydra.core.config_store import ConfigStore
+from omegaconf import MISSING
+
+
+cs = ConfigStore.instance()
 
 
 @dataclass
@@ -9,8 +16,8 @@ class RandomState:
 
 
 @dataclass
-class PreprocessingConfig(RandomState):
-    pass
+class PreprocessorConfig(RandomState):
+    name: str = MISSING
 
 
 @dataclass
@@ -19,15 +26,56 @@ class PCAConfig:
 
 
 @dataclass
-class TfidfConfig(PreprocessingConfig):
+class TfidfConfig(PreprocessorConfig):
+    name: str = "tfidf"
     use_pca: bool = False
     pca_config: PCAConfig = field(default_factory=PCAConfig)
 
+    # Fix hydra's duck typing
+    def __post_init__(self):
+        if isinstance(self.pca_config, dict):
+            self.pca_config = PCAConfig(**self.pca_config)
+
 
 @dataclass
-class TransformerConfig(PreprocessingConfig):
+class TransformerConfig(PreprocessorConfig):
+    name: str = "transformer"
     cache_dir: str = "embeddings_cache"
     model_name: str = "all-mpnet-base-v2"
+
+
+preprocessors = {}
+for preprocessor in [TfidfConfig, TransformerConfig]:
+    cs.store(group="preprocessor", name=preprocessor.name, node=preprocessor)
+    preprocessors[preprocessor.name] = preprocessor
+
+
+@dataclass
+class ClassifierConfig(RandomState):
+    name: str = MISSING
+
+
+@dataclass
+class LogisticRegressionConfig(ClassifierConfig):
+    name: str = "logreg"
+
+
+@dataclass
+class SVCConfig(ClassifierConfig):
+    name: str = "svm"
+    kernel: str = "rbf"
+
+
+@dataclass
+class RandomForestConfig(ClassifierConfig):
+    name: str = "random_forest"
+    n_estimators: int = 100
+
+
+classifiers = {}
+for classifier in [LogisticRegressionConfig, SVCConfig, RandomForestConfig]:
+    cs.store(group="classifier", name=classifier.name, node=classifier)
+    classifiers[classifier.name] = classifier
 
 
 @dataclass
@@ -46,12 +94,17 @@ class PaperComparisonConfig(BaseConfig):
 
 @dataclass
 class Config(BaseConfig):
-    preprocessing_config: PreprocessingConfig = field(default_factory=TfidfConfig)
+    defaults: list[Any] = field(
+        default_factory=lambda: [
+            "_self_",
+            {"preprocessor": "tfidf"},
+            {"classifier": "logreg"},
+        ]
+    )
+    trained_models_path: str = "${hydra:runtime.cwd}/models"
+    preprocessor: PreprocessorConfig = MISSING
+    classifier: ClassifierConfig = MISSING
 
 
-cs = ConfigStore.instance()
 cs.store(name="paper_comparison_config", node=PaperComparisonConfig)
-
 cs.store(name="config", node=Config)
-cs.store(group="preprocessing_method", name="tfidf", node=TfidfConfig)
-cs.store(group="preprocessing_method", name="transformer", node=TransformerConfig)
