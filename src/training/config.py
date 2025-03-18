@@ -101,7 +101,6 @@ class Config(BaseConfig):
             {"classifier": "logreg"},
         ]
     )
-    trained_models_path: str = "models"
     preprocessor: PreprocessorConfig = MISSING
     classifier: ClassifierConfig = MISSING
 

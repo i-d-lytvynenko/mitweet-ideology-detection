@@ -86,7 +86,7 @@ def main(cfg: Config) -> None:
             signature = infer_signature(X_test, y_pred)  # pyright: ignore[reportPossiblyUnboundVariable]
             _ = mlflow.sklearn.log_model(
                 sk_model=pipeline,
-                artifact_path=cfg.trained_models_path,
+                artifact_path=f"model_{facet_abbrev}",
                 signature=signature,
             )
 
