@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "ideology"
+name = "mitweet-ideology-detection"
 version = "0.1.0"
 description = ""
 authors = ["Ivan Lytvynenko <lytvynenko.i.d@gmail.com>"]
