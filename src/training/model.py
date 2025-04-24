@@ -25,7 +25,7 @@ class Classifier(BaseEstimator, ClassifierMixin):
         config: ClassifierConfig,
     ) -> None:
         # Fix hydra's duck typing
-        self.config = classifiers[config.name](**config)
+        self.config = classifiers[config.name](**config)  # pyright: ignore[reportCallIssue]
         model_params = asdict(self.config)
         model_params.pop("name", None)
         if isinstance(self.config, LogisticRegressionConfig):

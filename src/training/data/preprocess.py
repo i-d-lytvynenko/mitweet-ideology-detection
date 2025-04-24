@@ -65,7 +65,7 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         config: PreprocessorConfig,
     ) -> None:
         # Fix hydra's duck typing
-        self.config = preprocessors[config.name](**config)
+        self.config = preprocessors[config.name](**config)  # pyright: ignore[reportCallIssue]
         if isinstance(self.config, TfidfConfig):
             tfidf = TfidfVectorizer()
             pipeline_elements: list[tuple[str, BaseEstimator]] = [("tfidf", tfidf)]
