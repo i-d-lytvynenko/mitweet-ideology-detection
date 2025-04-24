@@ -83,7 +83,16 @@ def main(cfg: Config) -> None:
             f1_std = round(float(np.std(scores)), 4)
             _ = mlflow.log_metric(f"f1_{facet_abbrev}", f1_mean)
             _ = mlflow.log_metric(f"std_f1_{facet_abbrev}", f1_std)
-            signature = infer_signature(X_test, y_pred)  # pyright: ignore[reportPossiblyUnboundVariable]
+
+            X_train_full, y_train_full = undersampler.fit_resample(  # pyright: ignore[reportAssignmentType]
+                texts.reshape((-1, 1)), labels
+            )
+            X_train_full = X_train_full[:, 0]
+            _ = pipeline.fit(X_train_full, y_train_full)
+
+            sample_size = 5
+            sample_X, sample_y = X_train_full[:sample_size], y_train_full[:sample_size]
+            signature = infer_signature(sample_X, sample_y)
             _ = mlflow.sklearn.log_model(
                 sk_model=pipeline,
                 artifact_path=f"model_{facet_abbrev}",
