@@ -1,8 +1,14 @@
+# pyright: reportUnusedParameter = none, reportConstantRedefinition = none, reportExplicitAny = none, reportRedeclaration = none
+
+import logging
 import os
-from typing import cast, final
+from collections.abc import Iterable
+from typing import Any, cast, final
 
 import numpy as np
+import spacy
 from joblib import dump, load
+from pandas import DataFrame
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.decomposition import PCA
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -15,6 +21,9 @@ from src.training.config import (
     preprocessors,
 )
 from src.utils.types import arr_1d_f, arr_2d_f
+
+
+logging.getLogger("spacy").setLevel(logging.WARNING)
 
 
 @final
@@ -59,6 +68,29 @@ class CachedTransformer:
 
 
 @final
+class Lemmatizer(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        nlp = spacy.blank("en")
+        _ = nlp.add_pipe("lemmatizer", config={"mode": "lookup"})
+        _ = nlp.initialize()
+        self.nlp = nlp
+
+    def fit(self, X: list[str], y: arr_1d_f | None = None) -> "Lemmatizer":
+        return self
+
+    def transform(self, X: list[str]) -> list[str]:
+        lemmatized_text: list[str] = []
+        for doc in self.nlp.pipe(X):
+            lemmas = [
+                token.lemma_
+                for token in doc
+                if not token.is_stop and not token.is_punct
+            ]
+            lemmatized_text.append(" ".join(lemmas))
+        return lemmatized_text
+
+
+@final
 class Preprocessor(BaseEstimator, TransformerMixin):
     def __init__(
         self,
@@ -69,6 +101,9 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         if isinstance(self.config, TfidfConfig):
             tfidf = TfidfVectorizer()
             pipeline_elements: list[tuple[str, BaseEstimator]] = [("tfidf", tfidf)]
+            if self.config.lemmatize:
+                lemmatizer = Lemmatizer()
+                pipeline_elements.insert(0, ("lemmatizer", lemmatizer))
             if self.config.use_pca:
                 pca = PCA(
                     random_state=self.config.random_state,
@@ -83,12 +118,20 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         else:
             raise NotImplementedError
 
-    def fit(self, X: list[str], y: arr_1d_f | None = None) -> "Preprocessor":  # pyright: ignore[reportUnusedParameter]
+    def fit(
+        self,
+        X: list[str] | np.ndarray[Any, Any] | Iterable[Any] | DataFrame,
+        y: arr_1d_f | None = None,
+    ) -> "Preprocessor":
+        X: list[str] = list(X)
         if isinstance(self.config, TfidfConfig):
             self.pipeline_ = self.pipeline.fit(X)  # pyright: ignore[reportUninitializedInstanceVariable]
         return self
 
-    def transform(self, X: list[str]) -> arr_2d_f:
+    def transform(
+        self, X: list[str] | np.ndarray[Any, Any] | Iterable[Any] | DataFrame
+    ) -> arr_2d_f:
+        X: list[str] = list(X)
         if isinstance(self.config, TfidfConfig):
             return cast(arr_2d_f, self.pipeline_.transform(X))
         elif isinstance(self.config, TransformerConfig):

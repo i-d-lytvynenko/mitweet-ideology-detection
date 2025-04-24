@@ -28,6 +28,7 @@ class PCAConfig:
 @dataclass
 class TfidfConfig(PreprocessorConfig):
     name: str = "tfidf"
+    lemmatize: bool = False
     use_pca: bool = False
     pca_config: PCAConfig = field(default_factory=PCAConfig)
 
